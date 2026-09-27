@@ -1,0 +1,15 @@
+# recordings and renders never belong in this repository
+*.mp4
+*.mov
+*.m4v
+*.mkv
+*.webm
+*.wav
+*.m4a
+*.mp3
+*-edited/
+
+__pycache__/
+*.pyc
+node_modules/
+.DS_Store
