@@ -6,7 +6,7 @@
   "fonts": { "display": "Inter", "displayWeight": 800, "body": "Inter", "mono": "JetBrains Mono" },
   "captions": { "preset": "clean", "case": "spoken", "maxWords": 5, "size": 0.058, "emphasisPerChunk": 1, "emojiEvery": 0 },
   "camera": { "levels": [1.0, 1.08], "push": 0.04, "snapZoom": 1.1, "snapEvery": 12, "maxZoom": 1.12, "shake": false },
-  "transitions": { "set": ["push", "dip", "zoom"], "minGap": 12, "duration": 0.4 },
+  "transitions": { "set": ["slide", "dip", "zoom"], "minGap": 12, "duration": 0.4 },
   "effects": [],
   "graphics": { "coverage": [0.15, 0.35], "layouts": ["split", "overlay"], "motion": ["rise", "fade"] },
   "maxStatic": 7,

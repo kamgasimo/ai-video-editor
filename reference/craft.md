@@ -93,6 +93,6 @@ A graphic appears because the words carry something it can show:
 | Preset | Pacing | Captions | Graphics | Camera | Transitions | Sound |
 |---|---|---|---|---|---|---|
 | Dynamic creator | a change every 2–4 s | bold uppercase, keyword colour, rare emoji | 25–55 % of the time | levels at every cut, snaps on strong words | whip, zoom, flash, glitch at topics | dense effects, upbeat bed |
-| Clean premium | every 5–7 s | sentence case, soft underline | 15–35 %, refined | gentle levels, slow pushes | push, dip | few, soft effects, calm bed |
+| Clean premium | every 5–7 s | sentence case, soft underline | 15–35 %, refined | gentle levels, slow pushes | slide, dip, zoom | few, soft effects, calm bed |
 | Cinematic | every 7–9 s | small, low, no highlight | 8–25 %, lower thirds and titles | slow pushes | light leak, dip | sparse, ambient bed, film grade |
 | Minimal | the clean cut | Pillow captions | none | punch-ins | none | voice only |
