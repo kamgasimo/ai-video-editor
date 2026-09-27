@@ -12,7 +12,7 @@
 import { existsSync, mkdirSync, createWriteStream, statSync, renameSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { parseArgs, die, run, hasCommand, cacheDir, findModels, whisperCli, captionPython, findFont, SKILL_ROOT } from './common.mjs';
+import { parseArgs, die, run, hasCommand, cacheDir, findModels, whisperCli, captionPython, findFont, SCRIPTS } from './common.mjs';
 import { status as engineStatus, ENGINE_VERSION } from './engine.mjs';
 
 const args = parseArgs(process.argv.slice(2));
@@ -124,13 +124,13 @@ function checks() {
   const models = findModels();
   const envModel = process.env.WHISPER_MODEL && existsSync(process.env.WHISPER_MODEL) ? process.env.WHISPER_MODEL : null;
   add('model', true, Boolean(envModel || models.length), envModel ? `WHISPER_MODEL → ${envModel}` : models.length ? models.join(', ') : 'no ggml model found',
-    `node ${join(SKILL_ROOT, 'scripts', 'doctor.mjs')} --download-model large-v3-turbo-q5_0`);
+    `node ${join(SCRIPTS, 'doctor.mjs')} --download-model large-v3-turbo-q5_0`);
 
   const py = captionPython();
   const pyOk = hasCommand(py) || existsSync(py);
   const pil = pyOk && spawnSync(py, ['-c', 'import PIL']).status === 0;
   add('captions (Python + Pillow)', true, pil, pil ? `Pillow via ${py}` : pyOk ? 'Python found, Pillow missing' : 'python3 not found',
-    pyOk ? `node ${join(SKILL_ROOT, 'scripts', 'doctor.mjs')} --setup-python` : fixFor('python', pm));
+    pyOk ? `node ${join(SCRIPTS, 'doctor.mjs')} --setup-python` : fixFor('python', pm));
 
   const font = findFont();
   add('caption font', true, Boolean(font), font || 'no bold sans-serif font found', fixFor('font', pm));
@@ -138,7 +138,7 @@ function checks() {
   // the finished looks (graphics, transitions, captions, music): the rendering engine
   let eng = { ok: false };
   try { eng = engineStatus(); } catch {}
-  add('rendering engine', false, eng.ok, eng.ok ? `hyperframes ${eng.engine}, its browser and GSAP` : `not set up (wanted hyperframes ${ENGINE_VERSION})`, `node ${join(SKILL_ROOT, 'scripts', 'engine.mjs')} setup`);
+  add('rendering engine', false, eng.ok, eng.ok ? `hyperframes ${eng.engine}, its browser and GSAP` : `not set up (wanted hyperframes ${ENGINE_VERSION})`, `node ${join(SCRIPTS, 'engine.mjs')} setup`);
   add('person cut-out model', false, Boolean(eng.backgroundModel), eng.backgroundModel ? 'downloaded' : 'downloads on first use, about 168 MB', null);
   // optional services, each asked for by name before it is used
   const hg = hasCommand('heygen');

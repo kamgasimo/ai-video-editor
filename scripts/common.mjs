@@ -8,6 +8,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { homedir, tmpdir } from 'node:os';
 
 export const SKILL_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+export const SCRIPTS = join(SKILL_ROOT, 'scripts');
+export const ASSETS = join(SKILL_ROOT, 'assets');
 
 // ---------------------------------------------------------------- processes
 
@@ -219,4 +221,23 @@ export function writeWav(file, channels, rate) {
   h.writeUInt32LE(16, 16); h.writeUInt16LE(1, 20); h.writeUInt16LE(ch, 22); h.writeUInt32LE(rate, 24);
   h.writeUInt32LE(rate * ch * 2, 28); h.writeUInt16LE(ch * 2, 32); h.writeUInt16LE(16, 34); h.write('data', 36); h.writeUInt32LE(data.length, 40);
   writeFileSync(file, Buffer.concat([h, data]));
+}
+
+// ---------------------------------------------------------------- looks
+
+const merge = (a, b) => {
+  if (Array.isArray(b) || typeof b !== 'object' || b === null) return b;
+  const out = { ...a };
+  for (const [k, v] of Object.entries(b)) out[k] = typeof v === 'object' && v !== null && !Array.isArray(v) && typeof a?.[k] === 'object' ? merge(a[k], v) : v;
+  return out;
+};
+
+// A look by id (assets/styles/<id>.json) or a path to a project's own style file (relative to baseDir).
+// A project style that leaves something out inherits it from Dynamic creator.
+export function loadStyle(id = 'dynamic', baseDir = process.cwd()) {
+  const path = /\.json$/.test(id) ? resolve(baseDir, id) : join(ASSETS, 'styles', `${id}.json`);
+  if (!existsSync(path)) die(`style not found: ${path}`);
+  const style = readJson(path);
+  if (style.engine === false) return style;
+  return merge(readJson(join(ASSETS, 'styles', 'dynamic.json')), style);
 }

@@ -14,7 +14,7 @@
 import { existsSync, mkdirSync, writeFileSync, copyFileSync, readFileSync, symlinkSync, rmSync, lstatSync } from 'node:fs';
 import { join, dirname, resolve, basename, isAbsolute } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { parseArgs, die, readJson, writeJson, probe, isMain, SKILL_ROOT } from './common.mjs';
+import { parseArgs, die, readJson, writeJson, probe, isMain, ASSETS, loadStyle } from './common.mjs';
 import { gsapPath } from './engine.mjs';
 
 export const FORMATS = {
@@ -35,7 +35,7 @@ const lum = (hex) => { const n = parseInt(hex.slice(1), 16); const c = [n >> 16 
 
 let ICONS = null;
 function icon(name, { size = 48, stroke = 2 } = {}) {
-  ICONS ||= readJson(join(SKILL_ROOT, 'assets', 'icons', 'lucide.json'));
+  ICONS ||= readJson(join(ASSETS, 'icons', 'lucide.json'));
   const inner = ICONS.icons[name] || ICONS.icons['sparkles'];
   return `<svg width="${Math.round(size)}" height="${Math.round(size)}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${stroke}" stroke-linecap="round" stroke-linejoin="round" style="display:block;flex:none">${inner}</svg>`;
 }
@@ -45,7 +45,7 @@ function icon(name, { size = 48, stroke = 2 } = {}) {
 export function loadPlan(file) {
   const plan = readJson(file), base = dirname(resolve(file));
   const at = (p) => (p ? (isAbsolute(p) ? p : resolve(base, p)) : null);
-  const style = readJson(join(SKILL_ROOT, 'assets', 'styles', `${plan.style || 'dynamic'}.json`));
+  const style = loadStyle(plan.style || 'dynamic', base);
   const tokens = { ...style.palette, ...style.fonts, ...(plan.brand?.accent ? { accent: plan.brand.accent } : {}) };
   if (plan.brand?.font) tokens.display = plan.brand.font;
   tokens.dark = lum(tokens.panel) < 0.3;
@@ -141,7 +141,7 @@ export function compose(planFile, fmtName, outDir) {
   for (const fam of new Set([tokens.display, tokens.body, tokens.mono])) {
     const key = FONT_FILES[fam]; if (!key) continue;
     for (const w of [400, 500, 600, 700, 800, 900]) {
-      const f = join(SKILL_ROOT, 'assets', 'fonts', `${key}-${w}.woff2`);
+      const f = join(ASSETS, 'fonts', `${key}-${w}.woff2`);
       if (!existsSync(f)) continue;
       copyFileSync(f, join(outDir, 'fonts', `${key}-${w}.woff2`));
       fontCss += `@font-face{font-family:"${fam}";src:url("fonts/${key}-${w}.woff2") format("woff2");font-weight:${w};font-display:block;}\n`;
@@ -241,7 +241,7 @@ export function compose(planFile, fmtName, outDir) {
     };
     let part;
     if (gfx.component) {
-      const modPath = join(SKILL_ROOT, 'assets', 'components', `${gfx.component}.mjs`);
+      const modPath = join(ASSETS, 'components', `${gfx.component}.mjs`);
       if (!existsSync(modPath)) { warnings.push(`${b.id}: unknown component "${gfx.component}"`); return; }
       part = COMPONENTS[gfx.component](gfx.props || {}, ctx);
     } else if (gfx.scene) {
@@ -478,7 +478,7 @@ function noImmediate(src) {
 
 const COMPONENTS = {};
 async function loadComponents() {
-  const dir = join(SKILL_ROOT, 'assets', 'components');
+  const dir = join(ASSETS, 'components');
   for (const f of (await import('node:fs')).readdirSync(dir)) {
     if (!f.endsWith('.mjs') || f.startsWith('_')) continue;
     const m = await import(pathToFileURL(join(dir, f)).href);

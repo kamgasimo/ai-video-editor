@@ -18,7 +18,7 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve, relative, dirname } from 'node:path';
-import { parseArgs, die, readJson, writeJson, probe, num, isMain, SKILL_ROOT } from './common.mjs';
+import { parseArgs, die, readJson, writeJson, probe, num, isMain, ASSETS, loadStyle } from './common.mjs';
 
 const STOP = new Set('a an the and or but so to of in on at for with from by as is are was were be been being it its this that these those there here i you he she we they me him her us them my your our their do does did done have has had can could will would should may might must just very really also not no yes if then than too more most some any all each every one two about into over under out up down what which who whom whose when where why how'.split(' '));
 const WEAK = new Set('thing things something anything everything stuff going gonna getting becoming become became actually basically literally really kind sort lot lots maybe probably currently different able other another'.split(' '));
@@ -34,7 +34,7 @@ function sentences(words) {
 }
 
 export function draft({ work, styleId = 'dynamic', sections: given, hook, formats }) {
-  const style = readJson(join(SKILL_ROOT, 'assets', 'styles', `${styleId}.json`));
+  const style = loadStyle(styleId, work);
   const words = readJson(join(work, 'master-words.json'));
   const timeline = readJson(join(work, 'timeline.json'));
   const cuts = readJson(join(work, 'cuts.json'));
@@ -79,7 +79,7 @@ export function draft({ work, styleId = 'dynamic', sections: given, hook, format
   // captions: one emphasis per chunk; emoji where the style allows
   const capFile = join(work, 'captions.json');
   const chunks = existsSync(capFile) ? readJson(capFile).chunks : [];
-  const emojiMap = readJson(join(SKILL_ROOT, 'assets', 'emoji.json'));
+  const emojiMap = readJson(join(ASSETS, 'emoji.json'));
   const emphasis = [], emoji = [];
   let lastEmoji = -99, lastSnap = -99;
   const score = (w, i, arr) => {
@@ -153,7 +153,7 @@ const EFFECTS = new Set(['shake', 'flash-hit', 'rgb-pulse']);
 export function check(file) {
   const plan = readJson(file), base = dirname(resolve(file));
   const errors = [], warnings = [], info = [];
-  const style = existsSync(join(SKILL_ROOT, 'assets', 'styles', `${plan.style}.json`)) ? readJson(join(SKILL_ROOT, 'assets', 'styles', `${plan.style}.json`)) : (errors.push(`unknown style "${plan.style}"`), {});
+  const style = loadStyle(plan.style || 'dynamic', base);
   const D = plan.duration;
   for (const k of ['aroll', 'words']) if (!plan[k] || !existsSync(resolve(base, plan[k]))) errors.push(`${k}: file missing (${plan[k]})`);
   if (plan.captions?.file && !existsSync(resolve(base, plan.captions.file))) errors.push(`captions.file missing (${plan.captions.file})`);

@@ -26,7 +26,7 @@
 
 import { join, resolve } from 'node:path';
 import { writeFileSync } from 'node:fs';
-import { parseArgs, die, run, readJson, writeJson, probe, num, SKILL_ROOT } from './common.mjs';
+import { parseArgs, die, run, readJson, writeJson, probe, num, SCRIPTS } from './common.mjs';
 import { fillerWords, FILLER_RE, stripFillers, norm, keepFrom, expectedWords } from './cutlist.mjs';
 
 const args = parseArgs(process.argv.slice(2));
@@ -53,7 +53,7 @@ const db = ac.envelope.db, thr = ac.threshold;
 // ---------------------------------------------------------------- slices
 
 function slice(a, b) {
-  const r = run(process.execPath, [join(SKILL_ROOT, 'scripts', 'transcribe.mjs'), media, '--slice', `${Math.max(0, a).toFixed(2)}:${Math.min(duration, b).toFixed(2)}`, ...langArgs]);
+  const r = run(process.execPath, [join(SCRIPTS, 'transcribe.mjs'), media, '--slice', `${Math.max(0, a).toFixed(2)}:${Math.min(duration, b).toFixed(2)}`, ...langArgs]);
   return r.stdout.toString().replace(/^\S+\s+/, '').trim();
 }
 // filler-only: the span decodes to a filler and nothing else, so cutting it removes no word.

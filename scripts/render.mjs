@@ -14,7 +14,7 @@
 
 import { existsSync, mkdirSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
-import { parseArgs, die, run, readJson, writeJson, isMain, SKILL_ROOT } from './common.mjs';
+import { parseArgs, die, run, readJson, writeJson, isMain, SCRIPTS, loadStyle } from './common.mjs';
 import { compose, ready, FORMATS } from './compose.mjs';
 import { lint, render, validate } from './engine.mjs';
 import { renderCues } from './sfx.mjs';
@@ -53,7 +53,7 @@ if (isMain(import.meta.url)) {
   if (!planFile || typeof args['out-dir'] !== 'string' || typeof args.name !== 'string') die('usage: render.mjs <edit.json> --out-dir OUT --name NAME [--formats a,b] [--draft] [--no-sfx] [--no-music] [--under dB]');
   await ready();
   const plan = readJson(planFile), work = dirname(resolve(planFile)), out = resolve(args['out-dir']);
-  const style = readJson(join(SKILL_ROOT, 'assets', 'styles', `${plan.style || 'dynamic'}.json`));
+  const style = loadStyle(plan.style || 'dynamic', dirname(resolve(planFile)));
   const formats = typeof args.formats === 'string' ? args.formats.split(',') : plan.formats || ['vertical'];
   mkdirSync(join(work, 'render'), { recursive: true });
   mkdirSync(out, { recursive: true });
@@ -88,7 +88,7 @@ if (isMain(import.meta.url)) {
   if (cues.length) { sfx = join(work, 'sfx.wav'); renderCues(cues, plan.duration, sfx); }
   const music = !args['no-music'] && plan.music?.file && existsSync(join(work, plan.music.file)) ? join(work, plan.music.file) : null;
   const mix = join(work, 'mix.wav');
-  const mixArgs = [join(SKILL_ROOT, 'scripts', 'mix.mjs'), '--voice', master, '--out', mix, '--json', join(work, 'mix.json'), '--under', String(args.under ?? style.music?.under ?? 14)];
+  const mixArgs = [join(SCRIPTS, 'mix.mjs'), '--voice', master, '--out', mix, '--json', join(work, 'mix.json'), '--under', String(args.under ?? style.music?.under ?? 14)];
   if (music) mixArgs.push('--music', music);
   if (sfx) mixArgs.push('--sfx', sfx);
   console.log(run(process.execPath, mixArgs).stdout.toString().trim());

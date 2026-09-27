@@ -14,7 +14,7 @@
 
 import { copyFileSync, existsSync, mkdirSync, writeFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { parseArgs, die, run, readJson, tempDir, num, isMain, SKILL_ROOT } from './common.mjs';
+import { parseArgs, die, run, readJson, tempDir, num, isMain, ASSETS, loadStyle } from './common.mjs';
 import { contactSheet } from './frames.mjs';
 import { removeBackground, snapshot, gsapPath } from './engine.mjs';
 
@@ -38,8 +38,8 @@ if (isMain(import.meta.url)) {
   } else if (cmd === 'make') {
     if (!aroll || args.at === undefined || typeof args.title !== 'string' || typeof args.out !== 'string') die('usage: thumbnail.mjs make <aroll> --at s --title "A|B" --out f.jpg [--kind youtube|cover] [--style id] [--accent #hex]');
     const kind = args.kind === 'cover' ? 'cover' : 'youtube';
-    const style = readJson(join(SKILL_ROOT, 'assets', 'styles', `${typeof args.style === 'string' ? args.style : 'dynamic'}.json`));
-    const base = style.palette ? style : readJson(join(SKILL_ROOT, 'assets', 'styles', 'dynamic.json'));
+    const style = loadStyle(typeof args.style === 'string' ? args.style : 'dynamic');
+    const base = style.palette ? style : loadStyle('dynamic');
     const pal = { ...base.palette, ...(typeof args.accent === 'string' ? { accent: args.accent } : {}) };
     const font = base.fonts?.display || 'Montserrat', key = { Montserrat: 'montserrat', Inter: 'inter', 'Playfair Display': 'playfair-display' }[font] || 'montserrat';
     const W = kind === 'cover' ? 1080 : 1280, H = kind === 'cover' ? 1920 : 720;
@@ -49,7 +49,7 @@ if (isMain(import.meta.url)) {
       run('ffmpeg', ['-v', 'error', '-y', '-ss', String(num(args.at)), '-i', aroll, '-frames:v', '1', join(dir, 'assets', 'frame.png')]);
       removeBackground(join(dir, 'assets', 'frame.png'), join(dir, 'assets', 'cut.png'));
       copyFileSync(gsapPath(), join(dir, 'vendor', 'gsap.min.js'));
-      for (const w of [800, 900]) { const f = join(SKILL_ROOT, 'assets', 'fonts', `${key}-${w}.woff2`); if (existsSync(f)) copyFileSync(f, join(dir, 'assets', `f${w}.woff2`)); }
+      for (const w of [800, 900]) { const f = join(ASSETS, 'fonts', `${key}-${w}.woff2`); if (existsSync(f)) copyFileSync(f, join(dir, 'assets', `f${w}.woff2`)); }
       const lines = args.title.split('|').map((s) => s.trim()).filter(Boolean);
       const longest = Math.max(...lines.map((l) => l.length));
       const size = kind === 'cover' ? Math.min(150, Math.floor(960 / (longest * 0.8))) : Math.min(118, Math.floor(620 / (longest * 0.78)));

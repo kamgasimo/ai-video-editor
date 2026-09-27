@@ -18,7 +18,7 @@
 
 import { join, dirname, resolve } from 'node:path';
 import { readFileSync } from 'node:fs';
-import { parseArgs, die, run, probe, readJson, writeJson, tempDir, num, readPcm, SKILL_ROOT } from './common.mjs';
+import { parseArgs, die, run, probe, readJson, writeJson, tempDir, num, readPcm, SCRIPTS } from './common.mjs';
 import { measure } from './loudness.mjs';
 import { contactSheet } from './frames.mjs';
 import { steadyRuns } from './acoustics.mjs';
@@ -31,7 +31,7 @@ if (!render) die('usage: verify.mjs <render> [--expect-text f | --expect-words f
 
 const checks = [];
 const check = (name, status, detail) => checks.push({ name, status, detail });
-const node = (script, a) => run(process.execPath, [join(SKILL_ROOT, 'scripts', script), ...a]);
+const node = (script, a) => run(process.execPath, [join(SCRIPTS, script), ...a]);
 const FILLERS = fillerWords(typeof args.language === 'string' ? args.language : undefined);
 const glossaryArgs = [...(typeof args.glossary === 'string' ? ['--glossary', args.glossary] : []), ...(typeof args.language === 'string' ? ['--language', args.language] : [])];
 

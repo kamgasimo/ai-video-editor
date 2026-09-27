@@ -17,7 +17,7 @@
 
 import { existsSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { parseArgs, die, run, probe, readPcm, tempDir, writeJson, num, isMain, SKILL_ROOT, hasCommand } from './common.mjs';
+import { parseArgs, die, run, probe, readPcm, tempDir, writeJson, num, isMain, SCRIPTS, hasCommand } from './common.mjs';
 import { hf } from './engine.mjs';
 
 const SR = 48000;
@@ -117,7 +117,7 @@ if (isMain(import.meta.url)) {
       src = r.path; source = { kind: 'library', intent: args.library, id: r.id, path: r.path };
     } else {
       src = join(tmp.dir, 'generated.wav');
-      run(process.execPath, [join(SKILL_ROOT, 'scripts', 'synth.mjs'), '--duration', String(duration + 2), '--mood', String(args.generate), '--out', src, ...(args.seed ? ['--seed', String(args.seed)] : [])]);
+      run(process.execPath, [join(SCRIPTS, 'synth.mjs'), '--duration', String(duration + 2), '--mood', String(args.generate), '--out', src, ...(args.seed ? ['--seed', String(args.seed)] : [])]);
       source = { kind: 'generated', mood: String(args.generate) };
     }
     const length = fit(src, args.out, duration, tmp.dir);
