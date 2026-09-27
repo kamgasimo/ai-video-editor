@@ -17,7 +17,6 @@
 import { readdirSync, statSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { join, extname, basename } from 'node:path';
 import { parseArgs, die, probe, writeJson, num, isMain, tempDir, run, cacheDir } from './common.mjs';
-import { contactSheet } from './frames.mjs';
 
 const VIDEO = new Set(['.mp4', '.mov', '.m4v', '.webm', '.mkv']), IMAGE = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 
@@ -62,10 +61,10 @@ if (isMain(import.meta.url)) {
         run('ffmpeg', ['-v', 'error', '-y', ...(isV ? ['-ss', String(Math.min(1, p.duration / 2))] : ['-loop', '1', '-t', '0.2']), '-i', path, '-frames:v', '1', '-vf', 'scale=480:480:force_original_aspect_ratio=decrease,pad=480:480:(ow-iw)/2:(oh-ih)/2', still.replace('.mp4', '.png')]);
         frames.push(still.replace('.mp4', '.png'));
       });
+      // the stills are already square and padded: tiled as they are, in the order listed
       if (typeof args.sheet === 'string' && frames.length) {
-        const list = join(tmp.dir, 'all.mp4');
-        run('ffmpeg', ['-v', 'error', '-y', '-framerate', '1', '-i', join(tmp.dir, '%03d.png'), '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-r', '1', list]);
-        contactSheet(list, frames.map((_, i) => i + 0.5), { sheet: args.sheet, width: 240 });
+        const c = Math.min(6, frames.length), r = Math.ceil(frames.length / c);
+        run('ffmpeg', ['-v', 'error', '-y', '-framerate', '1', '-i', join(tmp.dir, '%03d.png'), '-vf', `scale=240:240,tile=${c}x${r}:padding=4:color=black`, '-frames:v', '1', args.sheet]);
         console.log(`→ ${args.sheet} (in the order listed)`);
       }
     } finally { tmp.cleanup(); }
