@@ -19,7 +19,7 @@ are seconds on the output timeline (the master's). Paths are relative to the wor
 | `hook` | `{ title: "LINE ONE\|LINE TWO", until: 1.8 }` |
 | `cta` | `{ text, icon, at }` — the call to action near the end |
 | `progress` | `true` for a progress bar |
-| `grade` | `punchy`, `clean` or `film` (the vignette follows it) |
+| `grade` | `punchy`, `clean` or `film`: the vignette follows it, and `film` adds moving grain |
 | `music` | `{ file, info }` — the fitted bed and its beats |
 | `notes` | the draft's opportunities and to-do list, for you |
 

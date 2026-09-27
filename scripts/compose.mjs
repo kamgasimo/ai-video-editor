@@ -429,6 +429,10 @@ ${captionCss(cap.preset, tokens, fmt, capSize)}\n`;
   // ---- the page
   const look = plan.grade || style.grade;
   const vignette = look === 'film' ? 0.55 : look === 'punchy' ? 0.28 : 0;
+  // film grain: a noise tile the browser draws once, jumped to a new offset twelve times a second — each
+  // step moves it by an amount that is not a divisor of the tile, wrapped, so every frame's grain differs
+  const grain = look === 'film' ? 0.3 : 0, tile = 240;
+  if (grain) js += `tl.to('#grain',{x:${97 * Math.round(D * 12)},y:${61 * Math.round(D * 12)},duration:${r3(D)},ease:'steps(${Math.round(D * 12)})',modifiers:{x:function(v){return (parseFloat(v)%${tile})+'px';},y:function(v){return (parseFloat(v)%${tile})+'px';}}},0);`;
   const page = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8" />
 <meta name="viewport" content="width=${W}, height=${H}" />
@@ -451,6 +455,7 @@ html,body{margin:0;width:${W}px;height:${H}px;overflow:hidden;background:${token
 #leak{position:absolute;inset:-20%;background:radial-gradient(40% 50% at 30% 40%,rgba(255,176,90,.9),rgba(255,120,60,0) 70%),radial-gradient(35% 45% at 70% 60%,rgba(255,220,150,.7),rgba(255,220,150,0) 70%);mix-blend-mode:screen;opacity:0;}
 #pipring{position:absolute;border-radius:50%;border:${Math.round(Math.min(W, H) * 0.008)}px solid ${tokens.accent};box-shadow:0 20px 50px rgba(0,0,0,.5);opacity:0;z-index:31;}
 #vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,rgba(0,0,0,0) 55%,rgba(0,0,0,${vignette}) 100%);}
+#grain{position:absolute;left:-${tile}px;top:-${tile}px;width:${W + tile * 2}px;height:${H + tile * 2}px;pointer-events:none;opacity:${grain};mix-blend-mode:overlay;background-size:${tile}px ${tile}px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${tile}' height='${tile}'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='2.4' intercept='-0.7'/%3E%3CfeFuncG type='linear' slope='2.4' intercept='-0.7'/%3E%3CfeFuncB type='linear' slope='2.4' intercept='-0.7'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
 ${css}
 </style></head>
 <body>
@@ -467,6 +472,7 @@ ${css}
     <video id="aroll" src="${aroll}" muted playsinline data-start="0" data-duration="${r3(D)}" data-track-index="1"></video>
   </div></div></div></div>
   ${vignette ? '<div id="vignette"></div>' : ''}
+  ${grain ? '<div id="grain"></div>' : ''}
   <div id="pipring" style="left:${Math.round(boxes.pip.x - 6)}px;top:${Math.round(boxes.pip.y - 6)}px;width:${Math.round(boxes.pip.w + 12)}px;height:${Math.round(boxes.pip.h + 12)}px"></div>
   ${html}
   <div id="captions">${capHtml}</div>
