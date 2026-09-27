@@ -9,10 +9,11 @@
 // Nothing here uploads anything. The model download is the only network access, from the
 // transcriber's own model repository, and only when asked for.
 
-import { existsSync, mkdirSync, createWriteStream, statSync, renameSync } from 'node:fs';
+import { existsSync, mkdirSync, createWriteStream, statSync, renameSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { parseArgs, die, run, hasCommand, cacheDir, findModels, whisperCli, captionPython, findFont, SKILL_ROOT } from './common.mjs';
+import { status as engineStatus, ENGINE_VERSION } from './engine.mjs';
 
 const args = parseArgs(process.argv.slice(2));
 
@@ -98,6 +99,7 @@ function checks() {
 
   const [major] = process.versions.node.split('.').map(Number);
   add('node', true, major >= 18, `Node ${process.versions.node}`, 'install Node 18 or newer');
+  add('node for the finished looks', false, major >= 22, major >= 22 ? `Node ${major} — the rendering engine runs` : `Node ${major} — the rendering engine needs 22 or newer`, pm === 'brew' ? 'brew install node' : 'install Node 22 or newer from https://nodejs.org');
 
   for (const tool of ['ffmpeg', 'ffprobe']) {
     const ok = hasCommand(tool);
@@ -133,6 +135,20 @@ function checks() {
   const font = findFont();
   add('caption font', true, Boolean(font), font || 'no bold sans-serif font found', fixFor('font', pm));
 
+  // the finished looks (graphics, transitions, captions, music): the rendering engine
+  let eng = { ok: false };
+  try { eng = engineStatus(); } catch {}
+  add('rendering engine', false, eng.ok, eng.ok ? `hyperframes ${eng.engine}, its browser and GSAP` : `not set up (wanted hyperframes ${ENGINE_VERSION})`, `node ${join(SKILL_ROOT, 'scripts', 'engine.mjs')} setup`);
+  add('person cut-out model', false, Boolean(eng.backgroundModel), eng.backgroundModel ? 'downloaded' : 'downloads on first use, about 168 MB', null);
+  // optional services, each asked for by name before it is used
+  const hg = hasCommand('heygen');
+  let signedIn = false;
+  if (hg) { const r = spawnSync('heygen', ['auth', 'status'], { encoding: 'utf8' }); signedIn = r.status === 0 && !/not (signed|logged) in/i.test((r.stdout || '') + (r.stderr || '')); }
+  add('music library (HeyGen, free account)', false, hg && signedIn, hg ? (signedIn ? 'signed in — real tracks by mood' : 'installed, not signed in') : 'not installed — music is generated on this machine instead',
+    hg ? 'heygen auth login --oauth' : 'curl -fsSL https://static.heygen.ai/cli/install.sh | bash && heygen auth login --oauth');
+  const cfg = join(cacheDir(), 'config.json');
+  const pexels = Boolean(process.env.PEXELS_API_KEY) || (existsSync(cfg) && Boolean(JSON.parse(readFileSync(cfg, 'utf8')).pexelsKey));
+  add('stock footage (Pexels, free key)', false, pexels, pexels ? 'a Pexels key is set' : 'no Pexels key — B-roll comes from graphics and your own folder', `get a free key at https://www.pexels.com/api/, then export PEXELS_API_KEY=… or save {"pexelsKey": "…"} in ${cfg}`);
   const xml = hasCommand('xmllint');
   add('xmllint (optional)', false, xml, xml ? 'present — checks editor timelines' : 'absent — editor timelines are written unchecked', fixFor('xmllint', pm));
 

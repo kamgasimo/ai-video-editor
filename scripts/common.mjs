@@ -11,8 +11,8 @@ export const SKILL_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
 // ---------------------------------------------------------------- processes
 
-export function run(cmd, args, { input, allowFail = false, maxBuffer = 1 << 30, inherit = false } = {}) {
-  const r = spawnSync(cmd, args, { input, maxBuffer, stdio: inherit ? 'inherit' : 'pipe' });
+export function run(cmd, args, { input, allowFail = false, maxBuffer = 1 << 30, inherit = false, env, cwd } = {}) {
+  const r = spawnSync(cmd, args, { input, maxBuffer, stdio: inherit ? 'inherit' : 'pipe', env: env ? { ...process.env, ...env } : process.env, cwd });
   if (r.error) {
     if (r.error.code === 'ENOENT') throw new Error(`${cmd} is not installed or not on PATH`);
     throw r.error;
