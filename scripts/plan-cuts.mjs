@@ -5,7 +5,10 @@
 //        --out cuts.json [--expected expected.txt]
 //        [--remove fillers,pauses,retakes,deadair | none] [--sentence-pause 0.3] [--clause-pause 0.2]
 //        [--lead 0.15] [--tail 0.35] [--probable keep|remove] [--face x,y] [--mouth y] [--punch 1.12]
-//        [--language en]
+//        [--language en] [--from s --to s]
+//
+// --from/--to limit the cut to one span of the source — a Short taken from a long recording: everything
+// outside it goes as dead air, and fillers, retakes and pauses are looked for inside it only.
 //
 // --face is the centre of the speaker's face and --mouth the height of their mouth, in source pixels:
 // punch-ins zoom around the face, reframes keep it in the crop, and captions stay clear of the mouth.
@@ -40,8 +43,11 @@ const removeProbable = args.probable === 'remove';
 const language = typeof args.language === 'string' ? args.language : undefined;
 const langArgs = language ? ['--language', language] : [];
 const FILLERS = fillerWords(language);
-const clean = readJson(args.clean), verbatim = readJson(args.verbatim), ac = readJson(args.acoustics);
+const cleanAll = readJson(args.clean), verbatimAll = readJson(args.verbatim), ac = readJson(args.acoustics);
 const duration = probe(media).duration;
+const from = num(args.from, 0), to = num(args.to, duration);
+const inRange = (t) => t >= from - 0.05 && t < to + 0.05;
+const clean = cleanAll.filter((w) => inRange(w.start)), verbatim = verbatimAll.filter((w) => inRange(w.start));
 const db = ac.envelope.db, thr = ac.threshold;
 
 // ---------------------------------------------------------------- slices
@@ -80,7 +86,7 @@ function speechRuns() {
   }
   return runs.filter((r) => r.e - r.s >= 20).map((r) => ({ start: r.s / 100, end: r.e / 100 }));
 }
-const runsOfSpeech = speechRuns();
+const runsOfSpeech = speechRuns().filter((r) => r.end > from && r.start < to).map((r) => ({ start: Math.max(r.start, from), end: Math.min(r.end, to) }));
 // The first moment after a, before b, that stays below the speech threshold for 60 ms.
 function soundEnd(a, b) {
   for (let i = idx(a); i < idx(b); i++) {
@@ -100,7 +106,7 @@ const add = (list, r) => list.push({ ...r, start: +r.start.toFixed(2), end: +r.e
 // ---------------------------------------------------------------- dead air
 
 const t0 = firstOnset(), t1 = lastEnd();
-if (remove.has('deadair')) {
+if (remove.has('deadair') || args.from !== undefined || args.to !== undefined) {
   if (t0 - lead > 0.05) add(removed, { start: 0, end: t0 - lead, kind: 'dead-air', evidence: [`first speech onset at ${t0.toFixed(2)}s`] });
   if (duration - (t1 + tail) > 0.05) add(removed, { start: t1 + tail, end: duration, kind: 'dead-air', evidence: [`last speech ends at ${t1.toFixed(2)}s`] });
 }
@@ -109,7 +115,7 @@ if (remove.has('deadair')) {
 
 const fillerSpans = [];
 if (remove.has('fillers')) {
-  const runs = ac.steadyRuns || [];
+  const runs = (ac.steadyRuns || []).filter((r) => r.start >= from && r.end <= to);
   const used = new Set();
   const reported = verbatim.filter((w) => FILLERS.has(norm(w.text)));
   const settled = (t) => fillerSpans.some((f) => t >= f.start - 1.0 && t <= f.end + 1.0);
@@ -219,13 +225,13 @@ if (remove.has('pauses')) {
 // ---------------------------------------------------------------- keep list and expected words
 
 const keep = keepFrom(removed, duration);
-const expected = expectedWords(clean, removed, language);
+const expected = expectedWords(cleanAll, removed, language);
 
 const face = typeof args.face === 'string' ? (([x, y]) => ({ x, y, ...(args.mouth !== undefined ? { mouth: num(args.mouth) } : {}) }))(args.face.split(',').map(Number)) : undefined;
 const cuts = {
   source: resolve(media), ...(face ? { face } : {}), punchIn: num(args.punch, 1.12),
   keep, removed: removed.sort((x, y) => x.start - y.start), probable: probable.sort((x, y) => x.start - y.start),
-  settings: { remove: [...remove], sentencePause, clausePause, lead, tail, probable: removeProbable ? 'remove' : 'keep', ...(language ? { language } : {}) },
+  settings: { remove: [...remove], sentencePause, clausePause, lead, tail, probable: removeProbable ? 'remove' : 'keep', ...(language ? { language } : {}), ...(args.from !== undefined || args.to !== undefined ? { range: [from, to] } : {}) },
 };
 writeJson(args.out, cuts);
 if (args.expected) writeFileSync(args.expected, expected.join(' ') + '\n');

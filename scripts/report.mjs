@@ -114,6 +114,28 @@ if (cuts) {
   }
 }
 
+// ---------------------------------------------------------------- the finish
+
+const plan = load(join(work, 'edit.json'));
+if (plan) {
+  const beats = plan.beats || [];
+  const gfx = beats.filter((b) => b.graphic);
+  const scenes = gfx.filter((b) => b.graphic.scene);
+  const trans = beats.filter((b) => b.transition && b.transition.kind !== 'cut');
+  const tb = beats.filter((b) => b.textBehind);
+  const mixr = load(join(work, 'mix.json')), musicr = load(join(work, 'music.json')), cues = load(join(work, 'sfx-cues.json'));
+  out('## The finish', '');
+  out(`- Look: **${plan.style}**${plan.brand?.accent ? `, accent ${plan.brand.accent}` : ''}, grade ${plan.grade}`);
+  if (plan.hook?.title) out(`- Hook: "${String(plan.hook.title).replace('|', ' ')}"`);
+  out(`- Graphics: ${gfx.length} of ${beats.length} beats${scenes.length ? ` (${scenes.length} custom scene${scenes.length > 1 ? 's' : ''})` : ''} — ${gfx.map((b) => `${b.start.toFixed(1)} s ${b.graphic.component || 'scene'}`).join(', ') || 'none'}`);
+  out(`- Transitions: ${trans.map((b) => `${b.transition.kind} at ${b.end.toFixed(1)} s`).join(', ') || 'none'}`);
+  if (tb.length) out(`- Text behind the speaker: ${tb.map((b) => `"${b.textBehind.text}"`).join(', ')}`);
+  if (musicr) out(`- Music: ${musicr.source?.kind === 'library' ? `library track ${musicr.source.id} (“${musicr.source.intent}”)` : musicr.source?.kind === 'file' ? 'your track' : `generated ${musicr.source?.mood} bed`}, ${musicr.bpm} bpm`);
+  if (mixr?.margin) out(`- Voice over music while speaking: median ${mixr.margin.median} dB, worst tenth ${mixr.margin.worstTenth} dB${mixr.margin.worstTenth < 12 ? ' — **under 12 dB**' : ''}`);
+  if (cues) out(`- Sound effects: ${cues.length} cues`);
+  out('');
+}
+
 // ---------------------------------------------------------------- for a person
 
 const unverified = [...new Set(checks.flatMap((c) => c.unverified || []))];
@@ -135,8 +157,11 @@ if (Object.keys(settings).length) {
 writeFileSync(join(dir, 'EDIT-REPORT.md'), lines.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd() + '\n');
 console.log(`→ ${join(dir, 'EDIT-REPORT.md')}`);
 if (args.tidy && existsSync(work)) {
-  const big = readdirSync(work).filter((f) => /\.(mov|wav)$/i.test(f));
+  // renders, cut-outs and the graded A-roll can all be made again from the plan; the plan, the
+  // transcripts, the checks, the sheets, the scenes and any downloaded B-roll are kept
+  const size = (p) => { const st = statSync(p); return st.isDirectory() ? readdirSync(p).reduce((a, f) => a + size(join(p, f)), 0) : st.size; };
+  const gone = readdirSync(work).filter((f) => /\.(mov|wav)$/i.test(f) || f === 'aroll.mp4' || ['render', 'drafts', 'cutouts'].includes(f) || f.startsWith('compose-'));
   let freed = 0;
-  for (const f of big) { freed += statSync(join(work, f)).size; rmSync(join(work, f)); }
-  console.log(`removed ${big.length} intermediate render(s) from work/, ${mb(freed)} freed`);
+  for (const f of gone) { freed += size(join(work, f)); rmSync(join(work, f), { recursive: true, force: true }); }
+  console.log(`removed ${gone.length} intermediate item(s) from work/, ${mb(freed)} freed`);
 }
