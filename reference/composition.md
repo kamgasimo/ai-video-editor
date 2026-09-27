@@ -57,5 +57,9 @@ are seconds on the output timeline (the master's). Paths are relative to the wor
   moves past a dead zone, then eases to it.
 - **Captions** sit at the style's height, moved down below the lowest point the mouth reaches during
   each chunk (zoom included), never below the platform's safe line; at the seam of a split.
+- **On landscape, an overlay and the hook sit beside the face**, on the wider free side at the deepest
+  zoom of the beat; a beat with no room there becomes a split, with a warning.
+- **The hook title leaves when the first panel, overlay, picture in picture, cutaway or B-roll
+  opens**, and is left out, with a warning, when that comes too soon to read it.
 - **Every visible event is reported** (`compose-<format>/compose.json`): transitions, entrances,
   reveals, snaps, presses — `render.mjs` cues a sound on each.

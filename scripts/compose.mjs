@@ -192,7 +192,30 @@ export function compose(planFile, fmtName, outDir) {
   }
 
   // ---- layouts, panels and graphics
-  const layoutOf = (b) => b.layout || 'full';
+  // On landscape the speaker's face sits mid-frame, so an overlay goes beside it: on the wider free side
+  // at the deepest zoom the span reaches. A beat with no room beside the face becomes a split.
+  const besideFace = (t0, t1) => {
+    const z = zoomMaxIn(t0, t1);
+    let lo = W, hi = 0;
+    for (let t = t0; t <= t1 + 1e-6; t += 0.25) {
+      const cx = g.pathAt(t).x * g.fs + g.frameX(t), hw = g.sampleAt(t).headW * g.fs * 0.62;
+      lo = Math.min(lo, origin.x + (cx - hw - origin.x) * z); hi = Math.max(hi, origin.x + (cx + hw - origin.x) * z);
+    }
+    const m = W * 0.03, right = { x: hi + m, w: W - m - (hi + m) }, left = { x: m, w: lo - 2 * m };
+    const best = right.w >= left.w ? right : left;
+    return best.w >= W * 0.2 ? { x: Math.round(best.x), y: Math.round(H * 0.1), w: Math.round(best.w), h: Math.round(H * 0.62) } : null;
+  };
+  const overlayBoxes = new Map();
+  const layoutOf = (b) => {
+    const L = b.layout || 'full';
+    if (L !== 'overlay' || fmtName !== 'landscape') return L;
+    if (!overlayBoxes.has(b.id)) {
+      const side = besideFace(Math.max(b.start, b.graphic?.at ?? b.start), Math.min(b.end, b.graphic?.until ?? b.end));
+      overlayBoxes.set(b.id, side);
+      if (!side) warnings.push(`${b.id}: no room beside the face for an overlay on ${fmtName} — shown as a split`);
+    }
+    return overlayBoxes.get(b.id) ? 'overlay' : 'split';
+  };
   let prevLayout = 'full';
   const splitPref = fmtName === 'landscape' ? 0.62 : 0.66;
   beats.forEach((b, bi) => {
@@ -218,7 +241,7 @@ export function compose(planFile, fmtName, outDir) {
     const gfx = b.graphic;
     if (!gfx && !b.broll) return;
     const g0 = Math.max(t0, gfx?.at ?? t0), g1 = Math.min(t1, gfx?.until ?? t1);
-    let box = L === 'split' ? boxes.panel : L === 'overlay' ? boxes.overlay : { x: 0, y: 0, w: W, h: H };
+    let box = L === 'split' ? boxes.panel : L === 'overlay' ? overlayBoxes.get(b.id) || boxes.overlay : { x: 0, y: 0, w: W, h: H };
     const withPanel = L === 'split' || L === 'cutaway' || L === 'pip';
     const id = `g-${b.id}`;
     if (b.broll) {
@@ -274,7 +297,7 @@ export function compose(planFile, fmtName, outDir) {
   });
 
   // ---- text behind the speaker
-  const tbCss = [];
+  const tbCss = [], tbShown = new Set();
   for (const b of beats) {
     const tb = b.textBehind;
     if (!tb) continue;
@@ -287,6 +310,7 @@ export function compose(planFile, fmtName, outDir) {
     if (cap < H * 0.055) { warnings.push(`${b.id}: too little room above the head for text behind it (${Math.round(headTopZ)} px) — use a title instead`); continue; }
     const size = Math.round(cap / 0.72), top = Math.round(headTopZ + cap * 0.38 - size * 0.86);
     const tid = `tb-${b.id}`;
+    tbShown.add(b.id);
     html += clip(tid, 'tbtext', t0, t1, `<span>${esc(tb.text)}</span>`, `top:${top}px;font-size:${size}px`);
     tbCss.push(tid);
     js += `tl.fromTo('#${tid} span',{opacity:0,scale:1.35,y:40},{opacity:1,scale:1,y:0,duration:.34,ease:'power3.out'},${t0});tl.to('#${tid} span',{opacity:0,duration:.14},${F(t1 - 0.14)});`;
@@ -369,13 +393,22 @@ export function compose(planFile, fmtName, outDir) {
 ${captionCss(cap.preset, tokens, fmt, capSize)}\n`;
 
   // ---- hook title, CTA, progress bar
-  if (plan.hook?.title && !beats[0]?.textBehind) {
-    const hookBox = boxes.overlay, id = 'hook';
+  // the hook leaves before the first beat that puts something where it sits — a panel, an overlay, a
+  // picture in picture, a cutaway or B-roll — and is left out when that beat comes too soon to read it
+  let hookEnd = plan.hook?.until ?? 1.8;
+  const busy = beats.find((b) => (b.layout || 'full') !== 'full' || b.broll);
+  if (plan.hook?.title && busy && busy.start < hookEnd) {
+    if (busy.start < 0.8) { warnings.push(`hook title left out: ${busy.id} opens its ${busy.layout || 'B-roll'} at ${busy.start}s, too soon to read it`); hookEnd = 0; }
+    else { warnings.push(`hook title ends at ${busy.start}s, where ${busy.id} opens its ${busy.layout || 'B-roll'}, not at ${plan.hook.until ?? 1.8}s`); hookEnd = busy.start; }
+  }
+  // a title behind the speaker on the first beat is the hook; when it had no room, the hook title is
+  if (plan.hook?.title && hookEnd > 0 && !tbShown.has(beats[0]?.id)) {
+    const hookBox = (fmtName === 'landscape' && besideFace(0.05, hookEnd)) || boxes.overlay, id = 'hook';
     const lines = String(plan.hook.title).split('|').map((s) => s.trim()).filter(Boolean);
-    const part = COMPONENTS.title({ lines: lines.map((text, i) => ({ text, color: i === lines.length - 1 ? 'key' : undefined })), variant: 'slam' }, { id, t0: 0.05, t1: plan.hook.until ?? 1.8, box: { w: Math.round(hookBox.w), h: Math.round(hookBox.h * 0.8) }, tokens: { ...tokens, text: '#FFFFFF', displayWeight: style.fonts?.displayWeight ?? 900 }, word: () => null, icon, motion: 'slam' });
-    html += clip(id, 'gfx hookbox', 0, plan.hook.until ?? 1.8, part.html, `left:${Math.round(hookBox.x)}px;top:${Math.round(hookBox.y)}px;width:${Math.round(hookBox.w)}px;height:${Math.round(hookBox.h * 0.8)}px`);
+    const part = COMPONENTS.title({ lines: lines.map((text, i) => ({ text, color: i === lines.length - 1 ? 'key' : undefined })), variant: 'slam' }, { id, t0: 0.05, t1: hookEnd, box: { w: Math.round(hookBox.w), h: Math.round(hookBox.h * 0.8) }, tokens: { ...tokens, text: '#FFFFFF', displayWeight: style.fonts?.displayWeight ?? 900 }, word: () => null, icon, motion: 'slam' });
+    html += clip(id, 'gfx hookbox', 0, hookEnd, part.html, `left:${Math.round(hookBox.x)}px;top:${Math.round(hookBox.y)}px;width:${Math.round(hookBox.w)}px;height:${Math.round(hookBox.h * 0.8)}px`);
     css += part.css + '\n';
-    js += part.js + `tl.to('#hook',{opacity:0,y:-20,duration:.2,ease:'power2.in'},${F((plan.hook.until ?? 1.8) - 0.2)});`;
+    js += part.js + `tl.to('#hook',{opacity:0,y:-20,duration:.2,ease:'power2.in'},${F(hookEnd - 0.2)});`;
     events.push({ at: 0.1, kind: 'hook' });
   }
   if (plan.cta) {

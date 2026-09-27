@@ -34,7 +34,7 @@ example `grep -o '"[a-z-]*":\[[^]]*"money"' assets/icons/tags.json`).
 | Layout | The speaker | Use for |
 |---|---|---|
 | `full` | fills the frame | sentences that stay on the speaker; stickers |
-| `overlay` | fills the frame, a graphic in the upper area | titles, short stats, reveals over the face |
+| `overlay` | fills the frame, a graphic in the upper area — beside the face on landscape | titles, short stats, reveals |
 | `split` | moves to the lower part (vertical) or left half (landscape) | cards, lists, charts, UI — anything with detail |
 | `pip` | a circle in the corner, the graphic fills the frame | a graphic that needs the whole frame while the voice stays personal |
 | `cutaway` | hidden; the voice continues | B-roll and full-frame graphics, briefly |

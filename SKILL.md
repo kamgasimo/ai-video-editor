@@ -283,7 +283,8 @@ Then edit `WORK/edit.json` with the Edit tool:
 
 1. **Hook.** Write `hook.title` from what the speaker promises, in two lines joined by `|`. If
    *Text behind me* was chosen, put a short word behind the head on the first strong word:
-   `textBehind` on the first beat. The composer drops it, with a warning, if there is no room.
+   `textBehind` on the first beat. The composer drops it, with a warning, if there is no room, and
+   shows the hook title instead.
 2. **Sections.** Check `sections` are real topic changes, and move or remove them.
 3. **Graphics.** Work through the opportunities and the transcript. Give a graphic to each beat
    whose words carry something to show, within the look's coverage.
