@@ -134,6 +134,7 @@ export function compose(planFile, fmtName, outDir) {
   mkdirSync(join(outDir, 'vendor'), { recursive: true });
   mkdirSync(join(outDir, 'fonts'), { recursive: true });
   const link = (file, name) => { const dst = join(outDir, 'assets', name); try { if (existsSync(dst) || lstatSync(dst)) rmSync(dst); } catch {} symlinkSync(resolve(file), dst); return `assets/${name}`; };
+  if (!existsSync(gsapPath())) die(`the rendering engine is not set up — run: node ${join(import.meta.dirname, 'engine.mjs')} setup`);
   copyFileSync(gsapPath(), join(outDir, 'vendor', 'gsap.min.js'));
 
   // fonts the style uses
