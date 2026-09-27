@@ -1,68 +1,96 @@
 # ai-video-editor
 
-A Claude Code skill that edits a raw talking-head recording into finished videos, on your own
-machine.
-
-Give it a recording. It cuts the ums, the long pauses, the retakes and the dead air. It levels
-your voice, adds punch-in zooms, burns in captions, and reframes the video for Shorts, Reels and
-TikTok. Then it checks every file it made before handing them over.
+A Claude Code skill that turns a raw talking-head recording into finished, social-ready videos on
+your own machine — edited the way a skilled CapCut editor would edit them.
 
 ```text
 /ai-video-editor ~/Movies/my-recording.mov
 ```
 
+It asks what you want once, then works on its own: it cuts the recording, designs the edit, renders
+drafts, critiques them against an editor's checklist, fixes them, and checks every file it delivers.
+
 ## What it does
 
-- **Cuts.** It removes:
-  - filler sounds, including the ones transcripts miss: a held "uhhh", or a low, creaky "uh";
-  - long pauses, shortened to the pace you choose;
-  - retakes: when you restart a sentence, the earlier attempt goes;
-  - dead air at the start and the end.
+### The cut
 
-  Every cut is placed on the measured sound, not on transcript timestamps, so no word gets
-  clipped.
-- **Sound.** Your voice gets a gentle clean-up: rumble removal, light denoise and compression. It
-  is delivered at −14 LUFS with true peaks at −1.5 dBTP, a common loudness for online video. You
-  can add a music bed, made on your machine, that dips while you speak.
-- **Picture.** Optional punch-in zooms on alternate segments make each cut read as a camera change.
-  Vertical 9:16 and square 1:1 versions are framed around your face.
-- **Captions.** Word-by-word animated captions in three styles and your accent colour, placed clear
-  of your mouth. You also get an `.srt` subtitle file.
-- **Hand-off.** An FCPXML timeline lets you fine-tune the cut in DaVinci Resolve, Final Cut Pro or
-  Premiere Pro.
-- **Checks.** Each file is transcribed back and compared word for word with what should remain.
-  Loudness, duration and audio/video sync are measured, and still frames are inspected for framing
-  and caption placement. The report says what passed and what only you can judge.
+- Removes filler sounds, including the ones transcripts miss (a held "uhhh", a creaky "uh"), long
+  pauses, retakes and dead air. Every cut is placed on the measured sound, so no word is clipped.
+- Checks the result by transcribing it back and comparing it word for word.
+
+### The finish
+
+- **Grade**: a face-first colour correction (a face that sits dark against a bright wall is lifted,
+  never darkened) and the look's grade.
+- **Camera**: a change of framing at every cut so no jump cut shows, slow push-ins, snap zooms on the
+  words that matter, a shake on an impact.
+- **Motion graphics that land on the words**: icon cards with living content (code typing, a video
+  playing, likes counting up, a timeline being cut), kinetic titles, lists, counters, charts,
+  comparisons, steps, quotes, interface mock-ups, lower thirds, stickers — plus bespoke scenes
+  designed for the key moments.
+- **Layouts**: split screen, overlay, picture-in-picture, cutaway.
+- **Transitions at topic changes**: whip-pan, zoom, flash, glitch, light leak, dip.
+- **Captions**: word by word, in the look's style, keywords coloured, rare emoji, placed below your
+  mouth and clear of each app's buttons. Plus an `.srt` file.
+- **Text behind you**, when there is room above your head.
+- **B-roll**: from your own folder, Pexels stock footage, or a generation service you choose.
+- **Sound design**: a whoosh on every transition, a hit on every title, a pop on every card — from a
+  library of recorded effects — and a music bed that dips under your voice. The voice is measured to
+  stay at least 12 dB above the music.
+- **Formats**: vertical 9:16, landscape 16:9, square 1:1 and 4:5, each framed on you and following
+  you as you move.
+- **Thumbnail and cover**: your most expressive frame, cut out and outlined, with a bold title.
+- **Long video → Shorts**: finds the strongest self-contained moments and edits each one.
+- **Editor timeline**: an FCPXML of the cut for DaVinci Resolve, Final Cut Pro or Premiere Pro.
+
+## The looks
+
+| Look | Feel |
+|---|---|
+| **Dynamic creator** (default) | Bold keyword captions with emoji, motion graphics on the words, snap zooms, transitions at topic changes, dense sound design, an upbeat bed. Built for Shorts, Reels and TikTok. |
+| **Clean premium** | Elegant captions, smooth push-ins, refined graphics, soft transitions, a calm bed. |
+| **Cinematic** | A film grade with grain and vignette, slow moves, titles and lower thirds, light leaks, ambient music. |
+| **Minimal** | The clean cut with simple captions and punch-ins. Needs no rendering engine. |
 
 ## How a run goes
 
-1. **Setup.** It checks for ffmpeg, whisper.cpp, a transcription model and Python for captions, and
-   offers to install whatever is missing.
-2. **Take in.** It transcribes your recording twice, once clean and once keeping every filler. It
-   measures the audio and finds your face in the frame.
-3. **Questions.** Two rounds of multiple-choice questions:
-   - first: what to cut, the pace, zooms, and which versions you want;
-   - then: caption style, accent colour, and music.
+1. **Setup** checks everything it needs and offers to install what is missing.
+2. **Take in** transcribes the recording twice (clean, and keeping every filler), measures the sound,
+   and finds your face.
+3. **Questions**, in two rounds of multiple choice:
+   - the look, what to cut, the pace and the versions;
+   - music, B-roll sources, extras (captions, text behind you, thumbnail, call to action) and an
+     accent colour.
 
-   If it finds names it can't be sure how to spell, it asks one more.
-4. **The edit, unattended.** It plans the cut, renders it, and checks it, fixing and re-checking
-   until the checks pass. Then it makes each version, checks each one, and writes a report.
+   A third round asks only when needed: name spellings, Shorts, a sign-in.
+4. **The edit, unattended.** It cuts and checks the master. It grades, tracks you, captions and
+   scores it. It drafts an edit plan, adds the creative layer, renders a draft, reviews it frame by
+   frame, fixes what fails, renders every version, and checks each one. Then it makes the thumbnail
+   and cover and writes a report.
 
 ## Requirements
 
 The skill checks for these itself and offers to install what is missing:
 
 - [Claude Code](https://code.claude.com)
-- Node.js 18 or newer
+- Node.js 22 or newer (18 for the Minimal look)
 - ffmpeg, with ffprobe
-- [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (`whisper-cli`) and a model. The first
-  run downloads `large-v3-turbo-q5_0`, about 574 MB, with your consent.
-- Python 3. Captions use Pillow, which is installed into a private environment under
-  `~/.cache/ai-video-editor`.
-- xmllint (optional), to check the editor timeline
+- [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (`whisper-cli`) and a transcription model:
+  `large-v3-turbo-q5_0`, about 574 MB, downloaded with your consent
+- Python 3 with Pillow (installed into a private environment), for the Minimal look's captions
+- The rendering engine, [HyperFrames](https://github.com/heygen-com/hyperframes) 0.8.80, with its
+  headless browser and GSAP. Setup installs these into `~/.cache/ai-video-editor/engine`. Its person
+  cut-out model, about 168 MB, downloads on first use.
 
-It has been tested on macOS on Apple silicon, with Homebrew. On Linux, setup prints the commands
-for your package manager. Windows is untested.
+**Optional, asked for only when you choose them:**
+
+- **Music library:** a free [HeyGen](https://www.heygen.com) account signed in through its command
+  line (`heygen auth login --oauth`). Without it, music is generated on your machine.
+- **Stock footage:** a free [Pexels API key](https://www.pexels.com/api/).
+- **AI-generated B-roll:** a generation service connected to your Claude Code session.
+
+Tested on macOS on Apple silicon, with Homebrew. On Linux, setup prints the commands for your package
+manager. Windows is untested.
 
 ## Install
 
@@ -90,45 +118,62 @@ git -C ~/.claude/skills/ai-video-editor pull
 /ai-video-editor path/to/recording.mp4
 ```
 
-You can also just ask, for example "edit my video at ~/Movies/intro.mov". With no path, it looks
-for videos in the current folder and asks which one to edit.
+You can also just ask: "edit my video at ~/Movies/intro.mov into a Short". With no path, it looks for
+videos in the current folder.
 
 ## What you get
 
 ```text
 recording-edited/
-├── recording-landscape.mp4
 ├── recording-vertical.mp4
+├── recording-landscape.mp4
 ├── recording-square.mp4
+├── recording-thumbnail.jpg     1280×720, for YouTube
+├── recording-cover.jpg         1080×1920, for Shorts, Reels, TikTok
 ├── recording.srt
 ├── recording.fcpxml
-├── EDIT-REPORT.md        what was made, every check, every cut and why
-├── edit-settings.json    your answers, reused if you run it again on this video
-└── work/                 transcripts, the cut list with its evidence, checks, frame sheets
+├── recording-short-1.mp4 …     when you asked for Shorts
+├── EDIT-REPORT.md              what was made, every check, every cut and why, the finish
+├── edit-settings.json          your answers, reused if you run it again on this video
+└── work/                       transcripts, the cut list with its evidence, the edit plan, scenes, checks, review sheets
 ```
 
 Your recording itself is never modified.
 
 ## Privacy
 
-Everything runs on your machine: transcription (whisper.cpp), analysis, rendering (ffmpeg) and
-music. No audio or video is uploaded anywhere. The one download is the transcription model, from
-the whisper.cpp model repository on Hugging Face.
+Everything runs on your machine:
 
-Claude reads the transcript and a few still frames while it works, as it would any file in your
-session.
+- transcription, analysis, the person cut-out and the grade;
+- rendering and generated music.
+
+The rendering engine's anonymous usage telemetry is switched off on every call, and no frame of your
+video is ever sent to a service.
+
+The downloads are the transcription model, the rendering engine with its browser and the cut-out
+model, all at setup and with your consent.
+
+Only what you choose goes out:
+
+- the music library receives mood words;
+- Pexels receives search words;
+- a generation service receives its prompt, after its cost is shown.
+
+Claude reads the transcript and still frames while it works, as it would any file in your session.
 
 ## Limits
 
-- It is made for one person talking to camera. It does not handle interviews with several
-  speakers, music videos, or footage without speech.
-- Reframing uses one fixed crop around the face. A speaker who walks across the frame can leave
-  the vertical crop; the report says so when that is likely.
-- Filler detection is tuned on English. It also knows the common hesitations in French, Spanish,
-  German, Portuguese, Italian and Dutch. In other languages, only the acoustic detection applies.
-- Pacing, how natural the audio sounds, and music taste can't be measured. The report lists them
-  for you to judge.
-- The editor timeline carries the cuts only. Zooms, captions and music are rendered into the
+- It is made for one person talking to camera. It does not handle interviews with several speakers,
+  music videos, or footage without speech.
+- Text behind you needs room above your head. In a tight close-up the skill uses a title instead, and
+  says so.
+- Generated music is decent but simpler than real tracks; the music library or your own track sound
+  better.
+- Filler detection is tuned on English, and knows the common hesitations in French, Spanish, German,
+  Portuguese, Italian and Dutch.
+- Pacing, how the graphics feel, and music taste can't be measured. The report lists them for you to
+  judge.
+- The editor timeline carries the cuts only; graphics, captions and music are rendered into the
   videos.
 
 ## Troubleshooting
@@ -142,35 +187,46 @@ node ~/.claude/skills/ai-video-editor/scripts/doctor.mjs
 | Problem | Fix |
 |---|---|
 | No transcription model found | `node ~/.claude/skills/ai-video-editor/scripts/doctor.mjs --download-model large-v3-turbo-q5_0` |
+| Rendering engine not set up | `node ~/.claude/skills/ai-video-editor/scripts/engine.mjs setup` |
 | Your model is somewhere else | Set `WHISPER_MODEL=/path/to/ggml-model.bin`, or `WHISPER_MODELS_DIR` to its folder |
 | Your whisper.cpp command has another name | Set `WHISPER_CLI` to it |
-| No caption font found, or you want another | Set `CAPTION_FONT=/path/to/font.ttf` |
+| Music library unavailable | Install and sign in to HeyGen's command line: `curl -fsSL https://static.heygen.ai/cli/install.sh \| bash`, then `heygen auth login --oauth` |
+| Stock footage unavailable | Get a free key at <https://www.pexels.com/api/> and `export PEXELS_API_KEY=…` |
 
 ## The scripts
 
-The skill drives these, and each one also works on its own. Run any with no arguments to see its
-usage.
+The skill drives these, and each also works on its own. Run any with no arguments for its usage.
 
 | Script | Does |
 |---|---|
-| `doctor.mjs` | checks the requirements, downloads a model, sets up the captions' Python |
-| `intake.mjs` | checks a recording and makes its output folder |
-| `transcribe.mjs` | local transcription: clean or verbatim, word timings aligned to the audio, single spans |
-| `acoustics.mjs` | loudness envelope, pauses, and held voiced sounds; a 30 ms view of any span |
-| `overview.mjs` | the intake in one read: transcript, fillers, pauses, spellings to confirm |
-| `plan-cuts.mjs` | the cut list, each removal with its evidence |
-| `adjust-cuts.mjs` | changes the cut list with a recorded reason |
-| `cut.mjs` | renders the cut list, with click-free joins and punch-ins |
-| `loudness.mjs` | measures loudness, and normalises it in two passes |
-| `verify.mjs` | the check: words, fillers, loudness, duration, sync, frames |
-| `captions.mjs` | caption chunks and the `.srt` file |
-| `burn-captions.mjs` | animated captions burned in, placed clear of the mouth |
-| `reframe.mjs` | vertical and square crops around the face |
-| `synth.mjs`, `mix.mjs` | a generated music bed, mixed and ducked under the voice |
-| `fcpxml.mjs` | the editor timeline |
-| `frames.mjs` | frame sheets, with an optional measuring grid |
-| `report.mjs` | `EDIT-REPORT.md` |
+| `doctor.mjs`, `engine.mjs` | check the requirements; set up the model, the captions' Python, the rendering engine |
+| `intake.mjs`, `transcribe.mjs`, `acoustics.mjs`, `overview.mjs` | take in the recording |
+| `plan-cuts.mjs`, `adjust-cuts.mjs`, `cut.mjs`, `loudness.mjs`, `verify.mjs` | the cut and its checks |
+| `grade.mjs`, `track.mjs` | the face-first grade; the speaker's track |
+| `captions.mjs` | caption chunks and the `.srt` |
+| `music.mjs`, `synth.mjs`, `sfx.mjs`, `mix.mjs` | the music bed, the sound effects, the mix with its measured margin |
+| `edit-plan.mjs` | drafts and checks the edit plan |
+| `compose.mjs`, `render.mjs` | the plan → a composition per format → finished files |
+| `cutouts.mjs`, `broll.mjs` | text-behind cut-outs; B-roll from a folder or Pexels |
+| `sheets.mjs`, `frames.mjs` | review sheets and frame sheets |
+| `thumbnail.mjs` | thumbnail and cover |
+| `moments.mjs` | long video → Short candidates |
+| `reframe.mjs`, `burn-captions.mjs`, `render_captions.py` | the Minimal look's versions and captions |
+| `fcpxml.mjs`, `report.mjs` | the editor timeline; `EDIT-REPORT.md` |
 
-## License
+## Licences
 
-[MIT](LICENSE)
+The skill is [MIT](LICENSE). It bundles:
+
+- fonts under the SIL Open Font License: Montserrat, Inter, Anton, Playfair Display, JetBrains Mono
+  (`assets/fonts/`);
+- Lucide icons under the ISC licence (`assets/icons/`).
+
+Setup installs, and does not bundle:
+
+- HyperFrames (Apache 2.0);
+- GSAP (its standard no-charge licence);
+- the rembg person-segmentation model.
+
+The recorded sound effects come with HyperFrames, under the Pixabay Content License: free for
+commercial use in videos, no attribution needed.
