@@ -289,7 +289,8 @@ Then edit `WORK/edit.json` with the Edit tool:
 3. **Graphics.** Work through the opportunities and the transcript. Give a graphic to each beat
    whose words carry something to show, within the look's coverage.
    - Choose the layout and the component, and set every item's `word`.
-   - Write two to four **custom scenes** per minute for the key beats (`scenes/<beat>.html`).
+   - Write **custom scenes** for the key beats (`scenes/<beat>.html`): at least one graphic beat in
+     three, and most of them in a Short.
    - Split a beat where one idea ends and the next starts, keeping the beats tiled.
 4. **B-roll**, from the user's sources:
    - their folder: `node ${CLAUDE_SKILL_DIR}/scripts/broll.mjs folder "<dir>" --sheet "WORK/broll-folder.jpg"`,

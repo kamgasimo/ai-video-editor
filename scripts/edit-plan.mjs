@@ -211,7 +211,9 @@ export function check(file) {
   const em = (plan.captions?.emoji || []).map((e) => e.at).sort((a, b) => a - b);
   for (let i = 1; i < em.length; i++) if (em[i] - em[i - 1] < (style.captions?.emojiEvery || 0) * 0.8) warnings.push(`emoji at ${em[i - 1]} and ${em[i]} are too close for the style`);
   if (style.hook?.title && !plan.hook?.title && !beats[0]?.textBehind) warnings.push('no hook title — the style opens on one');
-  info.push(`${beats.length} beats · ${transitions.length} transitions · graphics ${(cov * 100).toFixed(0)} % · longest static ${longest.len.toFixed(1)} s · ${(plan.captions?.emphasis || []).length} emphasised words · ${em.length} emoji`);
+  const graphicBeats = beats.filter((b) => b.graphic).length, scenes = beats.filter((b) => b.graphic?.scene).length;
+  if (graphicBeats >= 3 && scenes * 3 < graphicBeats) warnings.push(`${scenes} bespoke scene(s) for ${graphicBeats} graphic beats — give the key beats their own (reference/craft.md)`);
+  info.push(`${beats.length} beats · ${transitions.length} transitions · graphics ${(cov * 100).toFixed(0)} % · ${scenes} bespoke scene(s) · longest static ${longest.len.toFixed(1)} s · ${(plan.captions?.emphasis || []).length} emphasised words · ${em.length} emoji`);
   return { errors, warnings, info };
 }
 
