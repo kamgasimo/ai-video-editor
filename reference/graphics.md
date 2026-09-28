@@ -74,7 +74,10 @@ Rules the engine enforces (its lint runs on every render):
   Counters and typing use `onUpdate` on a tween.
 - **Scope every rule with `#SCENE`**; class names like `.cap`, `.frame`, `.cam`, `.panel` belong to the
   composition.
-- **Fit the box.** Size from `box.w`/`box.h` or container units; test the scene on every format.
+- **Fit the box.** Size from `box.w`/`box.h` or container units — a factor such as
+  `Math.min(box.w / 1080, box.h / 902)` scales a scene designed at the vertical panel's size — and in a
+  split keep the bottom tenth clear of anything that must be read: the captions sit on the seam. Test
+  the scene on every format.
 - **Palette and fonts from the style** — the fonts loaded are the style's (Montserrat, Inter, Anton,
   Playfair Display, JetBrains Mono).
 

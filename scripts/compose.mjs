@@ -194,7 +194,7 @@ export function compose(planFile, fmtName, outDir) {
   // ---- layouts, panels and graphics
   // On landscape the speaker's face sits mid-frame, so an overlay goes beside it: on the wider free side
   // at the deepest zoom the span reaches. A beat with no room beside the face becomes a split.
-  const besideFace = (t0, t1) => {
+  const besideFace = (t0, t1, minW = W * 0.3) => {
     const z = zoomMaxIn(t0, t1);
     let lo = W, hi = 0;
     for (let t = t0; t <= t1 + 1e-6; t += 0.25) {
@@ -203,9 +203,12 @@ export function compose(planFile, fmtName, outDir) {
     }
     const m = W * 0.03, right = { x: hi + m, w: W - m - (hi + m) }, left = { x: m, w: lo - 2 * m };
     const best = right.w >= left.w ? right : left;
-    return best.w >= W * 0.2 ? { x: Math.round(best.x), y: Math.round(H * 0.1), w: Math.round(best.w), h: Math.round(H * 0.62) } : null;
+    return best.w >= minW ? { x: Math.round(best.x), y: Math.round(H * 0.1), w: Math.round(best.w), h: Math.round(H * 0.62) } : null;
   };
+  const PANEL_BG = `background:${tokens.dark ? `radial-gradient(90% 70% at 20% 10%,color-mix(in srgb,${tokens.accent} 30%,transparent) 0%,transparent 60%),radial-gradient(80% 60% at 90% 90%,color-mix(in srgb,${tokens.c1} 20%,transparent) 0%,transparent 60%),linear-gradient(160deg,${tokens.panel} 0%,${tokens.panel2} 100%)` : `linear-gradient(160deg,${tokens.panel},${tokens.panel2})`};`;
   const overlayBoxes = new Map();
+  const joinsPanel = (a, c) => Boolean(a && c && layoutOf(a) === 'split' && layoutOf(c) === 'split' && Math.abs(a.end - c.start) < 0.05
+    && (a.graphic || a.broll) && (c.graphic || c.broll) && (a.graphic?.until ?? a.end) >= a.end - 0.05 && (c.graphic?.at ?? c.start) <= c.start + 0.05);
   const layoutOf = (b) => {
     const L = b.layout || 'full';
     if (L !== 'overlay' || fmtName !== 'landscape') return L;
@@ -279,15 +282,17 @@ export function compose(planFile, fmtName, outDir) {
       const wmap = JSON.stringify(Object.fromEntries(words.filter((w) => w.start >= g0 - 0.3 && w.start <= g1).map((w) => [norm(w.text), w.start]).reverse()));
       part = { html: body, css: styles, js: `(function(){const T0=${F(g0)},T1=${F(g1)},box={w:${Math.round(box.w)},h:${Math.round(box.h)}};const at=(s)=>T0+s;const W=${wmap};const word=(x)=>{const k=String(x).toLowerCase().replace(/[^\\p{L}\\p{N}']/gu,'');return W[k]??null;};const $=(s)=>'#${id} '+s;\n${script}\n})();`, events: (gfx.events || []).map((e) => ({ at: e.at, kind: e.kind })) };
     }
-    const panelBg = withPanel ? `background:${tokens.dark ? `radial-gradient(90% 70% at 20% 10%,color-mix(in srgb,${tokens.accent} 30%,transparent) 0%,transparent 60%),radial-gradient(80% 60% at 90% 90%,color-mix(in srgb,${tokens.c1} 20%,transparent) 0%,transparent 60%),linear-gradient(160deg,${tokens.panel} 0%,${tokens.panel2} 100%)` : `linear-gradient(160deg,${tokens.panel},${tokens.panel2})`};` : '';
+    const panelBg = withPanel ? PANEL_BG : '';
     const grid = withPanel && tokens.dark ? `<div class="grid" id="${id}-grid"></div>` : '';
     html += clip(id, `gfx ${withPanel ? 'panel' : ''}`, g0 - (L === 'split' ? 0.06 : 0), g1, `${grid}${part.html}`, `left:${Math.round(box.x)}px;top:${Math.round(box.y)}px;width:${Math.round(box.w)}px;height:${Math.round(box.h)}px;${panelBg}`);
     css += part.css + '\n';
     if (L === 'split') {
       const vertical = fmtName !== 'landscape';
-      js += `tl.fromTo('#${id}',{${vertical ? 'y' : 'x'}:${vertical ? -box.h : box.w}},{${vertical ? 'y' : 'x'}:0,duration:.42,ease:'power3.out'},${F(g0 - 0.06)});`;
-      const next = beats[bi + 1];
-      if (!(next && layoutOf(next) === 'split' && Math.abs(next.start - t1) < 0.05)) js += `tl.to('#${id}',{${vertical ? 'y' : 'x'}:${vertical ? -box.h : box.w},duration:.3,ease:'power3.in'},${F(g1 - 0.3)});`;
+      // two panel beats in a row share one panel: the first's content leaves and the second's arrives,
+      // and the panel itself neither closes nor opens again between them
+      if (joinsPanel(beats[bi - 1], b)) js += `tl.set('#${id}',{${vertical ? 'y' : 'x'}:0},${F(g0 - 0.06)});`;
+      else js += `tl.fromTo('#${id}',{${vertical ? 'y' : 'x'}:${vertical ? -box.h : box.w}},{${vertical ? 'y' : 'x'}:0,duration:.42,ease:'power3.out'},${F(g0 - 0.06)});`;
+      if (!joinsPanel(b, beats[bi + 1])) js += `tl.to('#${id}',{${vertical ? 'y' : 'x'}:${vertical ? -box.h : box.w},duration:.3,ease:'power3.in'},${F(g1 - 0.3)});`;
       else js += `tl.to('#${id} > :not(.grid)',{opacity:0,duration:.15},${F(g1 - 0.15)});`;
     } else if (withPanel) js += `tl.fromTo('#${id}',{opacity:0},{opacity:1,duration:.2},${F(g0)});`;
     if (grid) js += `tl.fromTo('#${id}-grid',{x:0,y:0},{x:60,y:60,duration:${r3(Math.max(0.5, g1 - g0))},ease:'none'},${F(g0)});`;
@@ -403,7 +408,7 @@ ${captionCss(cap.preset, tokens, fmt, capSize)}\n`;
   }
   // a title behind the speaker on the first beat is the hook; when it had no room, the hook title is
   if (plan.hook?.title && hookEnd > 0 && !tbShown.has(beats[0]?.id)) {
-    const hookBox = (fmtName === 'landscape' && besideFace(0.05, hookEnd)) || boxes.overlay, id = 'hook';
+    const hookBox = (fmtName === 'landscape' && besideFace(0.05, hookEnd, W * 0.2)) || boxes.overlay, id = 'hook';
     const lines = String(plan.hook.title).split('|').map((s) => s.trim()).filter(Boolean);
     const part = COMPONENTS.title({ lines: lines.map((text, i) => ({ text, color: i === lines.length - 1 ? 'key' : undefined })), variant: 'slam' }, { id, t0: 0.05, t1: hookEnd, box: { w: Math.round(hookBox.w), h: Math.round(hookBox.h * 0.8) }, tokens: { ...tokens, text: '#FFFFFF', displayWeight: style.fonts?.displayWeight ?? 900 }, word: () => null, icon, motion: 'slam' });
     html += clip(id, 'gfx hookbox', 0, hookEnd, part.html, `left:${Math.round(hookBox.x)}px;top:${Math.round(hookBox.y)}px;width:${Math.round(hookBox.w)}px;height:${Math.round(hookBox.h * 0.8)}px`);
@@ -413,7 +418,14 @@ ${captionCss(cap.preset, tokens, fmt, capSize)}\n`;
   }
   if (plan.cta) {
     const t0 = F(plan.cta.at ?? D - 2.2), size = Math.round(Math.min(W, H) * 0.052);
-    html += clip('cta', 'ctabox', t0, D, `<div class="pill" id="cta-pill"><span class="ic">${icon(plan.cta.icon || 'plus', { size: size * 1.1, stroke: 3 })}</span>${esc(plan.cta.text || 'FOLLOW FOR MORE')}</div>`, `top:${Math.round(H * (fmtName === 'landscape' ? 0.1 : fmt.safeTop + 0.02))}px`);
+    // during a panel beat, the call to action takes the panel over as an end card, so it covers neither
+    // the speaker nor the captions on the seam; otherwise it sits at the top of the frame
+    const ctaBeat = beats.find((b) => t0 >= b.start - 1e-6 && t0 < b.end), overPanel = ctaBeat && layoutOf(ctaBeat) === 'split';
+    const pb = boxes.panel;
+    const ctaPos = overPanel ? `left:${Math.round(pb.x)}px;top:${Math.round(pb.y)}px;width:${Math.round(pb.w)}px;height:${Math.round(pb.h)}px;align-items:center;${PANEL_BG}`
+      : `top:${Math.round(H * (fmtName === 'landscape' ? 0.1 : fmt.safeTop + 0.02))}px`;
+    if (overPanel) js += `tl.fromTo('#cta',{opacity:0},{opacity:1,duration:.22,ease:'power2.out'},${t0});`;
+    html += clip('cta', 'ctabox', t0, D, `<div class="pill" id="cta-pill"><span class="ic">${icon(plan.cta.icon || 'plus', { size: size * 1.1, stroke: 3 })}</span>${esc(plan.cta.text || 'FOLLOW FOR MORE')}</div>`, ctaPos);
     css += `.ctabox{position:absolute;left:0;width:${W}px;display:flex;justify-content:center;}
 .ctabox .pill{display:flex;align-items:center;gap:${size * 0.4}px;padding:${size * 0.45}px ${size * 0.9}px ${size * 0.45}px ${size * 0.45}px;border-radius:999px;background:#fff;color:#0A0A18;font:900 ${size}px/1 "${tokens.display}";box-shadow:0 ${size * 0.3}px 0 color-mix(in srgb,${tokens.accent} 55%,#fff),0 ${size * 0.5}px ${size}px rgba(0,0,0,.4);}
 .ctabox .ic{display:flex;width:${size * 1.6}px;height:${size * 1.6}px;border-radius:50%;background:${tokens.accent};color:#fff;align-items:center;justify-content:center;}\n`;

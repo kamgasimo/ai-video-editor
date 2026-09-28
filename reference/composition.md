@@ -61,5 +61,9 @@ are seconds on the output timeline (the master's). Paths are relative to the wor
   zoom of the beat; a beat with no room there becomes a split, with a warning.
 - **The hook title leaves when the first panel, overlay, picture in picture, cutaway or B-roll
   opens**, and is left out, with a warning, when that comes too soon to read it.
+- **The call to action never covers the speaker or the captions**: during a panel beat it takes the
+  panel over as an end card, so a scene in that beat peaks before `cta.at`.
+- **Two panel beats in a row share one panel**: the first's content leaves, the second's arrives, and
+  the panel neither closes nor opens again between them.
 - **Every visible event is reported** (`compose-<format>/compose.json`): transitions, entrances,
   reveals, snaps, presses — `render.mjs` cues a sound on each.
